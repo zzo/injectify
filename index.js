@@ -5,6 +5,7 @@
   * cb:        Callback for each statement (gets AST)
   * start:     String JS code to put at top of file
   * end:       String JS code of put at end of file
+  * after:     Inject JS AFTER the statement instead of before (the default)
   */
 var Injectify = function(args) {
     var fs = require('fs');
@@ -12,6 +13,7 @@ var Injectify = function(args) {
     this.cb    = args.cb;
     this.start = args.start;
     this.end   = args.end;
+    this.after = args.after;
 
     this.processor = require('uglify-js/lib/process');
     this.parser    = require("uglify-js/lib/parse-js");
@@ -194,6 +196,7 @@ Injectify.prototype.statement = function(ast) {
         , end = ast[0].end
         , xast
         , js
+        , block
     ;
 
     if (this.nofill) {
@@ -216,8 +219,17 @@ Injectify.prototype.statement = function(ast) {
         return ast;
     }
 
+    // Generate AST From cb-provided JS
     xast  = this.parser.parse(js);
-    return [ "block", [ xast[1][0], ast ] ];  // AST = { js; origAST } - fortunately blocks don't matter for JS!!
+
+    // Stick before current statement...
+    block = [ xast[1][0], ast ];
+    if (this.after) {
+        // Or maybe even after...
+        block.reverse();
+    }
+
+    return [ "block", block ];  // New AST  - fortunately blocks don't matter/scope for JS!!
 };
 
 module.exports = {
