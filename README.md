@@ -35,8 +35,7 @@ Inject arbitrary JS into JS at statement level
 
 Executing the returned JS will output a JSON array containing line+position+timestamp+filename+memory usage between every line of your JS!  Take a look at the newly generated JS to see exactly what I'm talking about.  
 
-Using 'injectify' you too can now inject ANY Javascript you want between each statement in your JS or you can be more selective and
-only inject BEFORE OR AFTER specific ones.
+Using 'injectify' you too can now inject ANY Javascript you want between each statement in your JS or you can be more selective and only inject BEFORE OR AFTER specific ones.
 
-
+More advanced usages requires some knowledge of uglify's AST syntax/semantics sorry - will cook up helper functions for more comming usages like 'what are the names of the paramters passed to a function' and 'what are the names of all the variables being defined in a 'var' statement'....
 
