@@ -184,10 +184,6 @@ Injectify.prototype.parse = function() {
         , finalAST = w.with_walkers(walkers, function() { return walk(ast); });
     ;
 
-    /*
-    var start = 'var __program=[];'
-    var end = 'process.on("exit", function () { console.log(JSON.stringify(__program)); });'
-    */
     return this.start + this.processor.gen_code(finalAST, { beautify: true }) + '; ' + this.end;
 };
 
