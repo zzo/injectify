@@ -6,7 +6,7 @@ Inject arbitrary JS into JS at statement level
     var Injectify = require('./index.js').Injectify
         , parser = new Injectify(
             {
-                file: '../firefox.js'
+                file: t.js'
                 , start: 'var __program = [];'
                 , end: 'process.on("exit", function () { console.log(JSON.stringify(__program)); });'
                 , cb: function(ast, start, end) {
@@ -39,3 +39,40 @@ Using 'injectify' you too can now inject ANY Javascript you want between each st
 
 More advanced usages requires some knowledge of uglify's AST syntax/semantics sorry - will cook up helper functions for more comming usages like 'what are the names of the paramters passed to a function' and 'what are the names of all the variables being defined in a 'var' statement'....
 
+You can also instrument at the start of every function using the 'functionStart' callback like so:
+
+    var Injectify = require('./index.js').Injectify
+        , parser = new Injectify(
+            {
+                file: 't.js'
+                , start: 'var __program = [];'
+                , end: 'process.on("exit", function () { console.log(JSON.stringify(__program)); });'
+                , functionStart: function(name, args, ast) {
+                    var obj, str;
+
+                    var xtra = { args: {}, name: name }
+                        , jxtra
+                    ;                    
+
+                    args.forEach(function(arg) {
+                        xtra.args[arg] = '_' + arg;
+                    });
+
+                    jxtra = JSON.stringify(xtra);
+
+                    args.forEach(function(arg) {
+                        jxtra = jxtra.replace('"_' + arg + '"', '(typeof(' + arg + ') !== "function" ? ' + arg + ' : ' + arg + '.toString())');
+                    });
+
+                    return '__program.push(' + jxtra + ');';
+                }
+            }
+        )
+        , newJS = parser.parse()
+        , vm = require('vm')
+    ;
+
+    // console.log(newJS);
+    vm.runInThisContext(newJS, 't.js')
+
+This will persist the values of every function argument each time the function is called & when the progrom is done it will dump them out
