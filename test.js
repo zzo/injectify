@@ -1,7 +1,7 @@
 var Injectify = require('./index.js').Injectify
     , parser = new Injectify(
         {
-            file: '../firefox.js'
+            file: 't.js'
             , start: 'var __program = [];'
             , end: 'process.on("exit", function () { console.log(JSON.stringify(__program)); });'
             , cb: function(ast, start, end) {

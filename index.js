@@ -6,6 +6,7 @@
   * start:     String JS code to put at top of file
   * end:       String JS code of put at end of file
   * after:     Inject JS AFTER the statement instead of before (the default)
+  * functionStart: Optional param - callback will get executed at the beginning of each function - can assert parameters or something 
   */
 var Injectify = function(args) {
     var fs = require('fs');
@@ -14,6 +15,7 @@ var Injectify = function(args) {
     this.start = args.start;
     this.end   = args.end;
     this.after = args.after;
+    this.functionStart = args.functionStart;
 
     this.processor = require('uglify-js/lib/process');
     this.parser    = require("uglify-js/lib/parse-js");
@@ -40,27 +42,11 @@ Injectify.prototype.parse = function() {
                 }) ];
                 return parser.statement(arr);
             }
-            /*
             , "defun": function(name, args, body) {
-                var xtra = { args: {} }
-                    , jxtra
-                ;                    
-
-                args.forEach(function(arg) {
-                    xtra.args[arg] = '_' + arg;
-                });
-
-                jxtra = JSON.stringify(xtra);
-
-                args.forEach(function(arg) {
-                    //jxtra = jxtra.replace('"_' + arg + '"', 'typeof(' + arg + ') !== "function" ? JSON.stringify(' + arg + ') : ' + arg + '.toString()');
-                    jxtra = jxtra.replace('"_' + arg + '"', 'typeof(' + arg + ') !== "function" ? ' + arg + ' : ' + arg + '.toString()');
-                });
-
-                body.unshift(parser.parse('try{__program.push(' + jxtra + ');}catch(e){}'));
-                return [ this[0], name, args.slice(), this.MAP(body,walk) ];
+                var bodyAST = parser.startFunc(name, args.slice(), body);
+                //return parser.statement([ this[0], name, args.slice(), parser.MAP(bodyAST, walk) ]);
+                return [ this[0], name, args.slice(), parser.MAP(bodyAST, walk) ];
             }
-            */
             ,"try": function(t, c, f) {
                 var arr = [
                         this[0],
@@ -163,7 +149,7 @@ Injectify.prototype.parse = function() {
                 return parser.statement(arr);
             }
             , "stat": function(stat) {
-                var arr= [ this[0], walk(stat) ];
+                var arr = [ this[0], walk(stat) ];
                 return parser.statement(arr);
             }
             , "label": function(name, block) {
@@ -204,7 +190,7 @@ Injectify.prototype.statement = function(ast) {
     }
  
     // Fill up object w/something interesting
-    if (start && end) {
+    if (start && end && this.cb) {
         js = this.cb(ast, start, end);
     }
 
@@ -216,7 +202,7 @@ Injectify.prototype.statement = function(ast) {
     }
 
     // Generate AST From cb-provided JS
-    xast  = this.parser.parse(js);
+    xast  = this.parser.parse(js, false, true);
 
     // Stick before current statement...
     block = [ xast[1][0], ast ];
@@ -226,6 +212,22 @@ Injectify.prototype.statement = function(ast) {
     }
 
     return [ "block", block ];  // New AST  - fortunately blocks don't matter/scope for JS!!
+};
+
+Injectify.prototype.startFunc = function(name, args, bodyAST) {
+    var js;
+
+    if (this.functionStart) {
+        js = this.functionStart(name, args, bodyAST);
+    }
+
+    if (!js) {
+        return bodyAST;
+    }
+
+    // Stick before function body
+    bodyAST.unshift(this.parser.parse(js, false, true));
+    return bodyAST;
 };
 
 module.exports = {
